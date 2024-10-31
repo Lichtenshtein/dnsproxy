@@ -92,6 +92,9 @@ type dnsOverHTTPS struct {
 
 	// List of headers to include
 	headers []httpHeader
+
+	// Custom HTTP headers.
+	httpHeaders map[string]string
 }
 
 // newDoH returns the DNS-over-HTTPS Upstream.
@@ -152,6 +155,7 @@ func newDoH(addr *url.URL, opts *Options) (u Upstream, err error) {
 		timeout:      opts.Timeout,
 		keylogf:	  nil,
 		headers:	  opts.Headers,
+		httpHeaders:  opts.HTTPHeaders,
 	}
 	for _, v := range httpVersions {
 		ups.tlsConf.NextProtos = append(ups.tlsConf.NextProtos, string(v))
@@ -312,6 +316,10 @@ func (p *dnsOverHTTPS) exchangeHTTPSClient(
 			httpReq.Header.Set(h.headerName, h.headerVal)
 			p.logger.Debug("Adding header - "+h.headerName+": "+h.headerVal)
 		}
+	}
+
+	for name, value := range p.httpHeaders {
+		httpReq.Header.Set(name, value)
 	}
 
 	httpResp, err := client.Do(httpReq)

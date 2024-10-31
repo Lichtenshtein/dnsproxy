@@ -168,6 +168,12 @@ func (conf *configuration) initUpstreams(
 		geositeDir = configDir
 	}
 
+	httpHeaders := map[string]string{}
+	for _, h := range conf.UpstreamHTTPHeaders {
+		name, value, _ := strings.Cut(h, ":")
+		httpHeaders[strings.TrimSpace(name)] = strings.TrimSpace(value)
+	}
+
 	upsOpts := &upstream.Options{
 		Logger:             l,
 		HTTPVersions:       httpVersions,
@@ -177,6 +183,7 @@ func (conf *configuration) initUpstreams(
 		GeositeDir:         geositeDir,
 		ClientCertPath:     conf.ClientCertPath,
 		ClientKeyPath:      conf.ClientKeyPath,
+		HTTPHeaders:        httpHeaders,
 	}
 
 	upstreams := loadServersList(conf.Upstreams)

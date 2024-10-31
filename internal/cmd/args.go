@@ -73,6 +73,7 @@ const (
 	stripEchIdx
 	clientCertPathIdx
 	clientKeyPathIdx
+	upstreamHTTPHeaders
 )
 
 // commandLineOption contains information about a command-line option: its long
@@ -448,6 +449,12 @@ var commandLineOptions = []*commandLineOption{
 		short:       "ck",
 		valueType:   "path",
 	},
+	upstreamHTTPHeaders: {
+		description: "Custom HTTP headers (name: value) for DoH usptream.",
+		long:        "upstream-http-header",
+		short:       "",
+		valueType:   "",
+	},
 }
 
 // parseCmdLineOptions parses the command-line options.  conf must not be nil.
@@ -513,6 +520,7 @@ func parseCmdLineOptions(conf *configuration) (err error) {
 		stripEchIdx:                 &conf.StripECH,
 		clientCertPathIdx:           &conf.ClientCertPath,
 		clientKeyPathIdx:            &conf.ClientKeyPath,
+		upstreamHTTPHeaders:         &conf.UpstreamHTTPHeaders,
 	} {
 		addOption(flags, fieldPtr, commandLineOptions[i])
 	}

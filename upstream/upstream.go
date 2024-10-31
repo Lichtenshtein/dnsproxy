@@ -112,6 +112,9 @@ type Options struct {
 	// upstream.
 	PreferIPv6 bool
 
+	// Custom HTTP headers.
+	HTTPHeaders map[string]string
+
 	// ClientCertPath is the path to the client certificate file for mutual TLS
 	// authentication with upstream servers. Used for DoH, DoT, and DoQ.
 	ClientCertPath string
@@ -145,6 +148,7 @@ func (o *Options) Clone() (clone *Options) {
 		Logger:                    o.Logger,
 		ClientCertPath:            o.ClientCertPath,
 		ClientKeyPath:             o.ClientKeyPath,
+		HTTPHeaders:               o.HTTPHeaders,
 	}
 }
 

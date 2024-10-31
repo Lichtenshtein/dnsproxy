@@ -209,6 +209,10 @@ type configuration struct {
 	// records, such as SOA and NS.
 	UsePrivateRDNS bool `yaml:"use-private-rdns"`
 
+	// Custom HTTP headers (name: value) for DoH upstream.
+	// This option can be specified multiple times.
+	UpstreamHTTPHeaders []string `yaml:"upstream-http-header"`
+
 	// WebPort is internal web port.
 	WebPort uint `yaml:"web-port"`
 

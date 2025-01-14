@@ -441,7 +441,7 @@ func cacheTTL(m *dns.Msg, l *slog.Logger) (ttl uint32) {
 // section.
 func hasIPAns(m *dns.Msg) (ok bool) {
 	for _, rr := range m.Answer {
-		if t := rr.Header().Rrtype; t == dns.TypeA || t == dns.TypeAAAA {
+		if t := rr.Header().Rrtype; t == dns.TypeA || t == dns.TypeAAAA || t == dns.TypeCNAME {
 			return true
 		}
 	}

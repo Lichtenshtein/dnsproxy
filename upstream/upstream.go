@@ -112,6 +112,14 @@ type Options struct {
 	// upstream.
 	PreferIPv6 bool
 
+	// ClientCertPath is the path to the client certificate file for mutual TLS
+	// authentication with upstream servers. Used for DoH, DoT, and DoQ.
+	ClientCertPath string
+
+	// ClientKeyPath is the path to the client private key file for mutual TLS
+	// authentication with upstream servers. Used for DoH, DoT, and DoQ.
+	ClientKeyPath string
+
 	// Headers is a list of headers to add for https, quic, h3 transports
 	Headers []httpHeader
 
@@ -135,6 +143,8 @@ func (o *Options) Clone() (clone *Options) {
 		RootCAs:                   o.RootCAs,
 		CipherSuites:              o.CipherSuites,
 		Logger:                    o.Logger,
+		ClientCertPath:            o.ClientCertPath,
+		ClientKeyPath:             o.ClientKeyPath,
 	}
 }
 

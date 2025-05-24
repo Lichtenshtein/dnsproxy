@@ -23,6 +23,7 @@ it can work as a `DNS-over-HTTPS`, `DNS-over-TLS` or `DNS-over-QUIC` server.
     - [EDNS Client Subnet](#edns-client-subnet)
     - [Bogus NXDomain](#bogus-nxdomain)
     - [Basic Auth for DoH](#basic-auth-for-doh)
+    - [Client Certificate Authentication for DoH](#client-certificate-authentication-for-doh)
 
 ## How to install
 
@@ -490,6 +491,26 @@ For example:
 This configuration will only allow DoH queries that contain an `Authorization` header containing the BasicAuth credentials for user `user` with password `p4ssw0rd`.
 
 Add `-p 0` if you also want to disable plain-DNS handling and make `dnsproxy` only serve DoH with Basic Auth checking.
+
+
+### Client Certificate Authentication for DoH
+
+DNS-over-HTTPS (DoH) upstreams can be configured to use client certificates for mutual TLS authentication:
+
+```shell
+./dnsproxy -u https://secure-dns.example.com/dns-query --client-cert-path /path/to/client.crt --client-key-path /path/to/client.key
+```
+
+Or using a configuration file:
+
+```yaml
+upstream:
+  - "https://secure-dns.example.com/dns-query"
+client-cert: "/path/to/client.crt"
+client-key: "/path/to/client.key"
+```
+
+This feature also works with DNS-over-TLS (DoT) and DNS-over-QUIC (DoQ) upstreams that require client certificate authentication.
 
 ### Adding headers for https/h3 upstreams
 

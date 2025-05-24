@@ -106,6 +106,31 @@ func newDoH(addr *url.URL, opts *Options) (u Upstream, err error) {
 		httpVersions = DefaultHTTPVersions
 	}
 
+	tlsConf := &tls.Config{
+		ServerName:   addr.Hostname(),
+		RootCAs:      opts.RootCAs,
+		CipherSuites: opts.CipherSuites,
+		// Use the default capacity for the LRU cache.  It may be useful to
+		// store several caches since the user may be routed to different
+		// servers in case there's load balancing on the server-side.
+		ClientSessionCache: tls.NewLRUClientSessionCache(0),
+		MinVersion:         tls.VersionTLS12,
+		// #nosec G402 -- TLS certificate verification could be disabled by
+		// configuration.
+		InsecureSkipVerify:    opts.InsecureSkipVerify,
+		VerifyPeerCertificate: opts.VerifyServerCertificate,
+		VerifyConnection:      opts.VerifyConnection,
+	}
+
+	// Load client certificate if provided
+	if opts.ClientCertPath != "" && opts.ClientKeyPath != "" {
+		clientCert, err := tls.LoadX509KeyPair(opts.ClientCertPath, opts.ClientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConf.Certificates = []tls.Certificate{clientCert}
+	}
+
 	quicConf := &quic.Config{
 		KeepAlivePeriod: QUICKeepAlivePeriod,
 		TokenStore:      newQUICTokenStore(),
@@ -119,22 +144,8 @@ func newDoH(addr *url.URL, opts *Options) (u Upstream, err error) {
 		getDialer:  newDialerInitializer(addr, opts),
 		addr:       addr,
 		quicConf:   quicConf,
-		quicConfMu: &sync.Mutex{},
-		tlsConf: &tls.Config{
-			ServerName:   addr.Hostname(),
-			RootCAs:      opts.RootCAs,
-			CipherSuites: opts.CipherSuites,
-			// Use the default capacity for the LRU cache.  It may be useful to
-			// store several caches since the user may be routed to different
-			// servers in case there's load balancing on the server-side.
-			ClientSessionCache: tls.NewLRUClientSessionCache(0),
-			MinVersion:         tls.VersionTLS12,
-			// #nosec G402 -- TLS certificate verification could be disabled by
-			// configuration.
-			InsecureSkipVerify:    opts.InsecureSkipVerify,
-			VerifyPeerCertificate: opts.VerifyServerCertificate,
-			VerifyConnection:      opts.VerifyConnection,
-		},
+		quicConfMu:   &sync.Mutex{},
+		tlsConf:      tlsConf,
 		clientMu:     &sync.Mutex{},
 		logger:       opts.Logger,
 		addrRedacted: addr.Redacted(),

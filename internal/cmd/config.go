@@ -208,8 +208,17 @@ type configuration struct {
 	// lookups of private addresses, including the requests for authority
 	// records, such as SOA and NS.
 	UsePrivateRDNS bool `yaml:"use-private-rdns"`
+
 	// WebPort is internal web port.
 	WebPort uint `yaml:"web-port"`
+
+	// ClientCertPath is the path to the client certificate file for mutual TLS
+	// authentication with upstream DoH servers.
+	ClientCertPath string `yaml:"client-cert"`
+
+	// ClientKeyPath is the path to the client private key file for mutual TLS
+	// authentication with upstream DoH servers.
+	ClientKeyPath string `yaml:"client-key"`
 
 	// StripECH makes the server to strip Encrypted ClientHello (ECH) data from DNS HTTPS records.
 	StripECH bool `yaml:"strip-ech"`

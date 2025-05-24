@@ -55,26 +55,38 @@ type dnsOverTLS struct {
 func newDoT(addr *url.URL, opts *Options) (ups Upstream, err error) {
 	addPort(addr, defaultPortDoT)
 
+	tlsConf := &tls.Config{
+		ServerName:         addr.Hostname(),
+		RootCAs:            opts.RootCAs,
+		CipherSuites:       opts.CipherSuites,
+		// Use the default capacity for the LRU cache.  It may be useful to
+		// store several caches since the user may be routed to different
+		// servers in case there's load balancing on the server-side.
+		ClientSessionCache: tls.NewLRUClientSessionCache(0),
+		MinVersion:         tls.VersionTLS12,
+		// #nosec G402 -- TLS certificate verification could be disabled by
+		// configuration.
+		InsecureSkipVerify:    opts.InsecureSkipVerify,
+		VerifyPeerCertificate: opts.VerifyServerCertificate,
+		VerifyConnection:      opts.VerifyConnection,
+	}
+
+	// Load client certificate if provided
+	if opts.ClientCertPath != "" && opts.ClientKeyPath != "" {
+		clientCert, err := tls.LoadX509KeyPair(opts.ClientCertPath, opts.ClientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConf.Certificates = []tls.Certificate{clientCert}
+	}
+
 	tlsUps := &dnsOverTLS{
 		addr:      addr,
 		getDialer: newDialerInitializer(addr, opts),
-		tlsConf: &tls.Config{
-			ServerName:   addr.Hostname(),
-			RootCAs:      opts.RootCAs,
-			CipherSuites: opts.CipherSuites,
-			// Use the default capacity for the LRU cache.  It may be useful to
-			// store several caches since the user may be routed to different
-			// servers in case there's load balancing on the server-side.
-			ClientSessionCache: tls.NewLRUClientSessionCache(0),
-			MinVersion:         tls.VersionTLS12,
-			// #nosec G402 -- TLS certificate verification could be disabled by
-			// configuration.
-			InsecureSkipVerify:    opts.InsecureSkipVerify,
-			VerifyPeerCertificate: opts.VerifyServerCertificate,
-			VerifyConnection:      opts.VerifyConnection,
-		},
-		connsMu: &sync.Mutex{},
-		logger:  opts.Logger,
+		conns:     []net.Conn{},
+		tlsConf:   tlsConf,
+		connsMu:   &sync.Mutex{},
+		logger:    opts.Logger,
 	}
 
 	runtime.SetFinalizer(tlsUps, (*dnsOverTLS).Close)

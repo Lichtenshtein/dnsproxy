@@ -19,3 +19,8 @@ example.key
 coverage.txt
 config.yaml
 test-reports/
+# Client certificates (generated locally)
+client.crt
+client.key
+client.pfx
+generate_cert.go

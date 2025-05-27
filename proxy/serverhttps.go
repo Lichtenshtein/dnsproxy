@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -152,6 +153,112 @@ func newDoHReq(r *http.Request, l *slog.Logger) (req *dns.Msg, statusCode int) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// Check if this is a human-readable query
+		name := r.URL.Query().Get("name")
+		if name != "" {
+			// This is a human-readable query
+			qtype := r.URL.Query().Get("type")
+			if qtype == "" {
+				qtype = "A" // Default to A record if type not specified
+			}
+
+			// Create DNS message
+			req = new(dns.Msg)
+			req.SetQuestion(dns.Fqdn(name), dns.StringToType[qtype])
+
+			// Add ECS if specified
+			ecs := r.URL.Query().Get("ecs")
+			if ecs != "" {
+				// Create OPT record
+				opt := new(dns.OPT)
+				opt.Hdr.Name = "."
+				opt.Hdr.Rrtype = dns.TypeOPT
+				opt.SetUDPSize(4096)
+				opt.SetDo()
+
+				// Parse ECS
+				ip, ipnet, err := net.ParseCIDR(ecs)
+				if err != nil {
+					// Try parsing as IP without prefix
+					ip = net.ParseIP(ecs)
+					if ip == nil {
+						l.Debug("invalid ecs parameter", "ecs", ecs, slogutil.KeyError, err)
+						return nil, http.StatusBadRequest
+					}
+					if ip.To4() != nil {
+						ipnet = &net.IPNet{IP: ip, Mask: net.CIDRMask(24, 32)} // Default to /24 for IPv4
+					} else {
+						ipnet = &net.IPNet{IP: ip, Mask: net.CIDRMask(56, 128)} // Default to /56 for IPv6
+					}
+				}
+
+				// Add ECS option
+				ecsOpt := new(dns.EDNS0_SUBNET)
+				ecsOpt.Code = dns.EDNS0SUBNET
+				ecsOpt.Family = 1 // IPv4
+				if ip.To4() == nil {
+					ecsOpt.Family = 2 // IPv6
+				}
+
+				// Calculate proper netmask
+				ones, _ := ipnet.Mask.Size()
+				ecsOpt.SourceNetmask = uint8(ones)
+				ecsOpt.SourceScope = 0
+				ecsOpt.Address = ip
+
+				// Ensure the option is properly formatted
+				if ecsOpt.Family == 1 {
+					// For IPv4, ensure we're using the first 4 bytes
+					ecsOpt.Address = ip.To4()
+				}
+
+				// Log EDNS option details before adding
+				l.Debug(
+					"adding edns subnet option",
+					"family", ecsOpt.Family,
+					"source_netmask", ecsOpt.SourceNetmask,
+					"source_scope", ecsOpt.SourceScope,
+					"address", ecsOpt.Address.String(),
+					"address_bytes", len(ecsOpt.Address),
+					"original_ecs", ecs,
+				)
+
+				opt.Option = append(opt.Option, ecsOpt)
+				req.Extra = append(req.Extra, opt)
+
+				// Log the complete OPT record
+				l.Debug(
+					"complete opt record",
+					"udp_size", opt.UDPSize(),
+					"do", opt.Do(),
+					"options_count", len(opt.Option),
+					"opt_string", opt.String(),
+				)
+			}
+
+			// Debug print the generated query
+			l.Debug(
+				"generated dns query from human readable args",
+				"name", name,
+				"type", qtype,
+				"ecs", ecs,
+				"query", req.String(),
+			)
+
+			// Log the message before packing
+			l.Debug(
+				"dns message before packing",
+				"id", req.Id,
+				"question_count", len(req.Question),
+				"answer_count", len(req.Answer),
+				"extra_count", len(req.Extra),
+				"msg_size", req.Len(),
+			)
+
+			return req, http.StatusOK
+		}
+
+		// Handle traditional base64url encoded query
 		dnsParam := r.URL.Query().Get("dns")
 		buf, err = base64.RawURLEncoding.DecodeString(dnsParam)
 		if len(buf) == 0 || err != nil {
@@ -217,6 +324,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req, statusCode := newDoHReq(r, p.logger)
+	p.logger.Info(req.String())
 	if req == nil {
 		http.Error(w, http.StatusText(statusCode), statusCode)
 
@@ -282,7 +390,56 @@ func matchesUserinfo(userinfo *url.Userinfo, user, pass string) (ok bool) {
 	return user == userinfo.Username() && pass == requiredPassword
 }
 
-// Writes a response to the DoH client.
+// dnsMsgToJSON converts a DNS message to a human-readable JSON format
+func dnsMsgToJSON(msg *dns.Msg, ecs string) map[string]interface{} {
+	questions := make([]map[string]interface{}, 0, len(msg.Question))
+	for _, q := range msg.Question {
+		questions = append(questions, map[string]interface{}{
+			"name": q.Name,
+			"type": q.Qtype,
+		})
+	}
+
+	answers := make([]map[string]interface{}, 0)
+	for _, rrset := range msg.Answer {
+		answer := map[string]interface{}{
+			"name": rrset.Header().Name,
+			"type": rrset.Header().Rrtype,
+			"TTL":  rrset.Header().Ttl,
+		}
+
+		// Extract data based on record type
+		switch r := rrset.(type) {
+		case *dns.A:
+			answer["data"] = r.A.String()
+		case *dns.CNAME:
+			answer["data"] = r.Target
+		default:
+			answer["data"] = rrset.String()
+		}
+
+		answers = append(answers, answer)
+	}
+
+	output := map[string]interface{}{
+		"Status":   msg.Rcode,
+		"TC":       msg.Truncated,
+		"RD":       msg.RecursionDesired,
+		"RA":       msg.RecursionAvailable,
+		"AD":       msg.AuthenticatedData,
+		"CD":       msg.CheckingDisabled,
+		"Question": questions,
+		"Answer":   answers,
+	}
+
+	if ecs != "" {
+		output["edns_client_subnet"] = ecs
+	}
+
+	return output
+}
+
+// respondHTTPS writes a response to the DoH client.
 func (p *Proxy) respondHTTPS(d *DNSContext) (err error) {
 	resp := d.Res
 	w := d.HTTPResponseWriter
@@ -294,6 +451,20 @@ func (p *Proxy) respondHTTPS(d *DNSContext) (err error) {
 		return nil
 	}
 
+	// Check if this was a human-readable query
+	ecs := ""
+	if d.HTTPRequest != nil && d.HTTPRequest.Method == http.MethodGet {
+		ecs = d.HTTPRequest.URL.Query().Get("ecs")
+	}
+
+	// Convert to JSON if it was a human-readable query
+	if d.HTTPRequest != nil && d.HTTPRequest.Method == http.MethodGet && d.HTTPRequest.URL.Query().Get("name") != "" {
+		jsonResp := dnsMsgToJSON(resp, ecs)
+		w.Header().Set(httphdr.ContentType, "application/json")
+		return json.NewEncoder(w).Encode(jsonResp)
+	}
+
+	// Otherwise, return binary DNS message
 	bytes, err := resp.Pack()
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

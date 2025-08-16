@@ -3,6 +3,9 @@ package proxy
 import (
 	"net"
 	"slices"
+
+	"github.com/AdguardTeam/golibs/log"
+	"github.com/miekg/dns"
 )
 
 // cacheForContext returns cache object for the given context.
@@ -80,6 +83,10 @@ func cloneIPNet(n *net.IPNet) (clone *net.IPNet) {
 // cacheResp stores the response from d in general or subnet cache.  In case the
 // cache is present in d, it's used first.
 func (p *Proxy) cacheResp(d *DNSContext) {
+	if d.Res != nil && d.Res.Rcode == dns.RcodeServerFailure {
+		log.Info("dnsproxy: cache: servfail response: skip, request %+v", d.Req.Question)
+		return
+	}
 	dctxCache := p.cacheForContext(d)
 
 	if !p.EnableEDNSClientSubnet {

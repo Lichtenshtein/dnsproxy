@@ -205,6 +205,8 @@ type configuration struct {
 	// lookups of private addresses, including the requests for authority
 	// records, such as SOA and NS.
 	UsePrivateRDNS bool `yaml:"use-private-rdns"`
+	// WebPort is internal web port.
+	WebPort uint `yaml:"web-port"`
 }
 
 // parseConfig returns options parsed from the command args or config file.  If

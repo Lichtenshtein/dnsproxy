@@ -86,6 +86,7 @@ func createProxyConfig(
 		PendingRequests: &proxy.PendingRequestsConfig{
 			Enabled: conf.PendingRequestsEnabled,
 		},
+		WebPort:   conf.WebPort,
 	}
 
 	if uiStr := conf.HTTPSUserinfo; uiStr != "" {

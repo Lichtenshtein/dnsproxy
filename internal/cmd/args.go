@@ -68,6 +68,7 @@ const (
 	pendingRequestsEnabledIdx
 	dns64Idx
 	usePrivateRDNSIdx
+	webPortIdx
 )
 
 // commandLineOption contains information about a command-line option: its long
@@ -413,6 +414,12 @@ var commandLineOptions = []*commandLineOption{
 		short:     "",
 		valueType: "",
 	},
+	webPortIdx: {
+		description: "Internal webport ",
+	long:      "webport",
+	short:     "w",
+	valueType: "uint32",
+	},
 }
 
 // parseCmdLineOptions parses the command-line options.  conf must not be nil.
@@ -473,6 +480,7 @@ func parseCmdLineOptions(conf *configuration) (err error) {
 		pendingRequestsEnabledIdx:   &conf.PendingRequestsEnabled,
 		dns64Idx:                    &conf.DNS64,
 		usePrivateRDNSIdx:           &conf.UsePrivateRDNS,
+		webPortIdx:				   &conf.WebPort,
 	} {
 		addOption(flags, fieldPtr, commandLineOptions[i])
 	}

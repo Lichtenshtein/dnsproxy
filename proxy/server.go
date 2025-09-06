@@ -86,6 +86,8 @@ func (p *Proxy) serveListeners() {
 	for _, l := range p.dnsCryptTCPListen {
 		go func(l net.Listener) { _ = p.dnsCryptServer.ServeTCP(l) }(l)
 	}
+
+	p.startInternalWeb()
 }
 
 // handleDNSRequest processes the context.  The only error it returns is the one

@@ -67,6 +67,14 @@ func (h *Default) HandleRequest(p *proxy.Proxy, proxyCtx *proxy.DNSContext) (err
 	if proxyCtx.Res = h.resolveFromHosts(ctx, proxyCtx.Req); proxyCtx.Res != nil {
 		return nil
 	}
+	if p.Config.WebPort >0 {
 
+		if proxyCtx.Res=p.LookInternal(proxyCtx.Req); proxyCtx.Res != nil {
+
+
+			return nil
+		}
+
+	}
 	return p.Resolve(proxyCtx)
 }

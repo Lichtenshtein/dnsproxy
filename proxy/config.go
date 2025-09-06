@@ -272,6 +272,8 @@ type Config struct {
 	// PreferIPv6 tells the proxy to prefer IPv6 addresses when bootstrapping
 	// upstreams that use hostnames.
 	PreferIPv6 bool
+
+	WebPort uint
 }
 
 // PendingRequestsConfig is the configuration for tracking identical requests.

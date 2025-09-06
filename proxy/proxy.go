@@ -209,6 +209,8 @@ type Proxy struct {
 
 	// started indicates if the proxy has been started.
 	started bool
+
+	pairs map[string]string
 }
 
 // New creates a new Proxy with the specified configuration.  c must not be nil.

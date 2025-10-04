@@ -69,6 +69,7 @@ func createProxyConfig(
 		CacheOptimistic:          conf.CacheOptimistic,
 		RefuseAny:                conf.RefuseAny,
 		HTTP3:                    conf.HTTP3,
+		StripECH:        conf.StripECH,
 		// TODO(e.burkov):  The following CIDRs are aimed to match any address.
 		// This is not quite proper approach to be used by default so think
 		// about configuring it.

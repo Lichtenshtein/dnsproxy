@@ -70,6 +70,7 @@ const (
 	dns64Idx
 	usePrivateRDNSIdx
 	webPortIdx
+	stripEchIdx
 )
 
 // commandLineOption contains information about a command-line option: its long
@@ -427,6 +428,12 @@ var commandLineOptions = []*commandLineOption{
 	short:     "w",
 	valueType: "uint32",
 	},
+	stripEchIdx: {
+		description: "If specified, strip Encrypted ClientHello (ECH) data from DNS HTTPS records.",
+		long:        "strip-ech",
+		short:       "",
+		valueType:   "",
+	},
 }
 
 // parseCmdLineOptions parses the command-line options.  conf must not be nil.
@@ -489,6 +496,7 @@ func parseCmdLineOptions(conf *configuration) (err error) {
 		dns64Idx:                    &conf.DNS64,
 		usePrivateRDNSIdx:           &conf.UsePrivateRDNS,
 		webPortIdx:				   &conf.WebPort,
+		stripEchIdx:               &conf.StripECH,
 	} {
 		addOption(flags, fieldPtr, commandLineOptions[i])
 	}

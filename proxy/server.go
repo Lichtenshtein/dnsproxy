@@ -139,10 +139,33 @@ func (p *Proxy) handleDNSRequest(d *DNSContext) (err error) {
 		}
 	}
 
+	p.postprocessResponse(d)
+
 	p.logDNSMessage(d.Res)
 	p.respond(d)
 
 	return err
+}
+
+// postprocessResponse change response if needed.
+func (p *Proxy) postprocessResponse(d *DNSContext) {
+	switch {
+	case p.StripECH && len(d.Res.Answer) > 0 && d.Res.Answer[0].Header().Rrtype == dns.TypeHTTPS:
+		var xs []dns.SVCBKeyValue
+
+		for _, val := range d.Res.Answer[0].(*dns.HTTPS).Value {
+			if val.Key() != dns.SVCB_ECHCONFIG {
+				xs = append(xs, val)
+			} else {
+				p.logger.Debug("strip ECH from HTTPS", "ech", val.String())
+			}
+		}
+		d.Res.Answer[0].(*dns.HTTPS).Value = xs
+
+		return // p.messages.NewMsgNOTIMPLEMENTED(d.Req)
+	default:
+		return
+	}
 }
 
 // validateRequest returns a response for invalid request or nil if the request

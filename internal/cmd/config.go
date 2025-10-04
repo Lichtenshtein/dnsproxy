@@ -210,6 +210,9 @@ type configuration struct {
 	UsePrivateRDNS bool `yaml:"use-private-rdns"`
 	// WebPort is internal web port.
 	WebPort uint `yaml:"web-port"`
+
+	// StripECH makes the server to strip Encrypted ClientHello (ECH) data from DNS HTTPS records.
+	StripECH bool `yaml:"strip-ech"`
 }
 
 // parseConfig returns options parsed from the command args or config file.  If

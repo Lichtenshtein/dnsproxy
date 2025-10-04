@@ -275,6 +275,9 @@ type Config struct {
 	// upstreams that use hostnames.
 	PreferIPv6 bool
 
+
+	// StripECH makes proxy to strip Encrypted ClientHello (ECH) data from DNS HTTPS records.
+	StripECH bool
 	WebPort uint
 }
 

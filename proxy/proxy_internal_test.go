@@ -918,6 +918,55 @@ func TestRefuseAny(t *testing.T) {
 	assert.Equal(t, dns.RcodeNotImplemented, r.Rcode)
 }
 
+func TestStripECH(t *testing.T) {
+	dnsProxy := mustNew(t, &Config{
+		Logger:                 slogutil.NewDiscardLogger(),
+		UDPListenAddr:          []*net.UDPAddr{net.UDPAddrFromAddrPort(localhostAnyPort)},
+		TCPListenAddr:          []*net.TCPAddr{net.TCPAddrFromAddrPort(localhostAnyPort)},
+		UpstreamConfig:         newTestUpstreamConfig(t, defaultTimeout, testDefaultUpstreamAddr),
+		TrustedProxies:         defaultTrustedProxies,
+		RatelimitSubnetLenIPv4: 24,
+		RatelimitSubnetLenIPv6: 64,
+		StripECH:               true,
+	})
+
+	servicetest.RequireRun(t, dnsProxy, testTimeout)
+
+	// Create a DNS-over-UDP client connection
+	addr := dnsProxy.Addr(ProtoUDP)
+	client := &dns.Client{
+		Net:     string(ProtoUDP),
+		Timeout: testTimeout,
+	}
+
+	// Create a DNS request with empty ECH
+	request := (&dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:               dns.Id(),
+			RecursionDesired: true,
+		},
+	}).SetQuestion("localhost.", dns.TypeHTTPS)
+
+	r, _, err := client.Exchange(request, addr.String())
+	require.NoError(t, err)
+	assert.NotNil(t, r)
+
+	// Create a DNS request with known ECH
+	request = (&dns.Msg{
+		MsgHdr: dns.MsgHdr{
+			Id:               dns.Id(),
+			RecursionDesired: true,
+		},
+	}).SetQuestion("cloudflare-ech.com.", dns.TypeHTTPS)
+
+	r, _, err = client.Exchange(request, addr.String())
+	require.NoError(t, err)
+
+	for _, val := range r.Answer[0].(*dns.HTTPS).Value {
+		assert.False(t, val.Key() == dns.SVCB_ECHCONFIG)
+	}
+}
+
 func TestInvalidDNSRequest(t *testing.T) {
 	dnsProxy := mustNew(t, &Config{
 		Logger:                 slogutil.NewDiscardLogger(),

@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"os"
 
 	"github.com/AdguardTeam/dnsproxy/internal/bootstrap"
 	"github.com/AdguardTeam/golibs/errors"
@@ -84,6 +85,9 @@ type dnsOverHTTPS struct {
 
 	// timeout is used in HTTP client and for H3 probes.
 	timeout time.Duration
+
+	// TLS keylog file handle
+	keylogf *os.File
 }
 
 // newDoH returns the DNS-over-HTTPS Upstream.
@@ -131,6 +135,7 @@ func newDoH(addr *url.URL, opts *Options) (u Upstream, err error) {
 		logger:       opts.Logger,
 		addrRedacted: addr.Redacted(),
 		timeout:      opts.Timeout,
+		keylogf:	  nil,
 	}
 	for _, v := range httpVersions {
 		ups.tlsConf.NextProtos = append(ups.tlsConf.NextProtos, string(v))
@@ -209,6 +214,11 @@ func (p *dnsOverHTTPS) Close() (err error) {
 
 	if p.client != nil {
 		err = p.closeClient(p.client)
+	}
+
+	// If we're using SSLKEYLOGFILE, close it
+	if p.keylogf != nil {
+		p.keylogf.Close()
 	}
 
 	return err
@@ -452,6 +462,21 @@ func (p *dnsOverHTTPS) createTransport() (t http.RoundTripper, err error) {
 	// connection is established successfully, we'll be using HTTP3 for this
 	// upstream.
 	tlsConf := p.tlsConf.Clone()
+
+	// If SSLKEYLOGFILE is set, rite keys to the keylog
+	keylogfn := os.Getenv("SSLKEYLOGFILE")
+
+	if keylogfn != "" {
+		p.logger.Debug("Using SSLKEYLOGFILE: " + keylogfn)
+		kf, err := os.OpenFile(keylogfn, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			p.logger.Debug("couldn't open keylog file", slogutil.KeyError, err)
+		} else {
+			p.keylogf = kf
+		}
+		tlsConf.KeyLogWriter=p.keylogf;
+	}
+
 	transportH3, err := p.createTransportH3(tlsConf, dialContext)
 	if err == nil {
 		p.logger.Debug("using http/3 for this upstream, quic was faster")

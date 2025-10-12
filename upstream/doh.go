@@ -88,6 +88,9 @@ type dnsOverHTTPS struct {
 
 	// TLS keylog file handle
 	keylogf *os.File
+
+	// List of headers to include
+	headers []httpHeader
 }
 
 // newDoH returns the DNS-over-HTTPS Upstream.
@@ -136,6 +139,7 @@ func newDoH(addr *url.URL, opts *Options) (u Upstream, err error) {
 		addrRedacted: addr.Redacted(),
 		timeout:      opts.Timeout,
 		keylogf:	  nil,
+		headers:	  opts.Headers,
 	}
 	for _, v := range httpVersions {
 		ups.tlsConf.NextProtos = append(ups.tlsConf.NextProtos, string(v))
@@ -290,6 +294,13 @@ func (p *dnsOverHTTPS) exchangeHTTPSClient(
 	// https://github.com/AdguardTeam/dnsproxy/issues/211.
 	httpReq.Header.Set(httphdr.UserAgent, "")
 	httpReq.Header.Set(httphdr.Accept, "application/dns-message")
+
+	if len(p.headers)>0 {
+		for _, h := range p.headers {
+			httpReq.Header.Set(h.headerName, h.headerVal)
+			p.logger.Debug("Adding header - "+h.headerName+": "+h.headerVal)
+		}
+	}
 
 	httpResp, err := client.Do(httpReq)
 	if err != nil {

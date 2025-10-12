@@ -56,6 +56,11 @@ type QUICTracer interface {
 	) (trace qlogwriter.Trace)
 }
 
+type httpHeader struct {
+	headerName string
+	headerVal string
+}
+
 // Options for AddressToUpstream func.  With these options we can configure the
 // upstream properties.
 type Options struct {
@@ -106,6 +111,9 @@ type Options struct {
 	// PreferIPv6 tells the bootstrapper to prefer IPv6 addresses for an
 	// upstream.
 	PreferIPv6 bool
+
+	// Headers is a list of headers to add for https, quic, h3 transports
+	Headers []httpHeader
 
 	// GeositeDir is the directory containing geosite.dat and other geo data files.
 	// If provided, it will be used to enable geosite-based domain routing.
@@ -187,6 +195,8 @@ const (
 // opts are applied to the u and shouldn't be modified afterwards, nil value is
 // valid.
 //
+// Addr may contain a list of headers to be sent, separated by |
+// This is only valid for https, quic, h3
 // TODO(e.burkov):  Clone opts?
 func AddressToUpstream(addr string, opts *Options) (u Upstream, err error) {
 	if opts == nil {
@@ -196,6 +206,9 @@ func AddressToUpstream(addr string, opts *Options) (u Upstream, err error) {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
 	}
+
+	// First separate the address from the headers (if any)
+	addr,headerList, headersExist := strings.Cut(addr, "|")
 
 	var uu *url.URL
 	if strings.Contains(addr, "://") {
@@ -216,7 +229,33 @@ func AddressToUpstream(addr string, opts *Options) (u Upstream, err error) {
 		return nil, err
 	}
 
+	// Now we know the URL is valid, parse any headers and store in opts
+	if headersExist {
+		switch uu.Scheme {
+			case "https", "h3":
+				opts.Headers, err=parseHeaders(headerList)
+			default:
+				err=fmt.Errorf("scheme '%s' doesn't support headers: %s|%s", uu.Scheme, addr, headerList)
+		}
+		if err != nil {
+			return nil, err
+		}
+		opts.Logger.Debug("Processed headers", opts.Headers)
+
+	}
+
 	return urlToUpstream(uu, opts)
+}
+
+func parseHeaders(headers string) (headerList []httpHeader, err error) {
+	for _, h := range strings.Split(headers, "|") {
+		hName, hVal, _ := strings.Cut(h, ":")
+		headerList = append(headerList, httpHeader{
+			headerName:	hName,
+			headerVal:	hVal,
+		})
+	}
+	return headerList, nil
 }
 
 // validateUpstreamURL returns an error if the upstream URL is not valid.

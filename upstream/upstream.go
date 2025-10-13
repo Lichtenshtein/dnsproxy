@@ -252,7 +252,7 @@ func parseHeaders(headers string) (headerList []httpHeader, err error) {
 		hName, hVal, _ := strings.Cut(h, ":")
 		headerList = append(headerList, httpHeader{
 			headerName:	hName,
-			headerVal:	hVal,
+			headerVal:	url.QueryEscape(hVal),
 		})
 	}
 	return headerList, nil

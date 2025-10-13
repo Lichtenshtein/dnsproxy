@@ -240,8 +240,6 @@ func AddressToUpstream(addr string, opts *Options) (u Upstream, err error) {
 		if err != nil {
 			return nil, err
 		}
-		opts.Logger.Debug("Processed headers", opts.Headers)
-
 	}
 
 	return urlToUpstream(uu, opts)

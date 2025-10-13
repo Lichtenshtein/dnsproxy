@@ -490,3 +490,23 @@ For example:
 This configuration will only allow DoH queries that contain an `Authorization` header containing the BasicAuth credentials for user `user` with password `p4ssw0rd`.
 
 Add `-p 0` if you also want to disable plain-DNS handling and make `dnsproxy` only serve DoH with Basic Auth checking.
+
+### Adding headers for https/h3 upstreams
+
+You can make DNSProxy add supplementary static headers with every HTTP DNS request by appending them to the upstream configuration with a '|' character.
+
+For example,
+```shell
+./dnsproxy -u 'https://dns.example.com/dns-query|X-example-header:12345-abcde|X-example-header2:67890-fghij'
+```
+
+This command will use DNS over HTTPS service at dns.example.com, and will include the following HTTP headers and header values with every query:
+
+```
+X-example-header:12345-abcde
+X-example-header2:67890-fghij
+```
+
+### Support for SSLKEYLOGFILE
+
+If the environment variable SSLKEYLOGFILE is set, DNSproxy will write TLS session key information to the file specified by it for any HTTPS upstream connections. This can be used with tools such as Wireshark to decrypt DoH traffic in packet captures and is helpful if you need to debug in detail the DNS information exchanged between DNSProxy and the upstream servers.

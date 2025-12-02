@@ -402,6 +402,11 @@ func (p *Proxy) Shutdown(ctx context.Context) (err error) {
 		return nil
 	}
 
+	// Stop proactive cache refresh.
+	if p.cache != nil {
+		p.cache.stopProactiveRefresh()
+	}
+
 	errs := p.closeListeners(nil)
 
 	for _, u := range []*UpstreamConfig{

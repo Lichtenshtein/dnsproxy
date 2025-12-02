@@ -18,6 +18,7 @@ import (
 const (
 	configPathIdx = iota
 	logOutputIdx
+	apiPortIdx
 	tlsCertPathIdx
 	tlsKeyPathIdx
 	httpsServerNameIdx
@@ -74,6 +75,14 @@ const (
 	clientCertPathIdx
 	clientKeyPathIdx
 	upstreamHTTPHeaders
+	prefetchEnabledIdx
+	prefetchBatchSizeIdx
+	prefetchCheckIntervalIdx
+	prefetchRefreshBeforeIdx
+	prefetchThresholdIdx
+	prefetchThresholdWindowIdx
+	prefetchMaxConcurrentRequestsIdx
+	prefetchMaxQueueSizeIdx
 )
 
 // commandLineOption contains information about a command-line option: its long
@@ -100,6 +109,12 @@ var commandLineOptions = []*commandLineOption{
 		long:        "output",
 		short:       "o",
 		valueType:   "path",
+	},
+	apiPortIdx: {
+		description: "Port for the HTTP API server.",
+		long:        "api-port",
+		short:       "",
+		valueType:   "port",
 	},
 	tlsCertPathIdx: {
 		description: "Path to a file with the certificate chain.",
@@ -344,13 +359,13 @@ var commandLineOptions = []*commandLineOption{
 		valueType:   "",
 	},
 	pprofIdx: {
-		description: "If present, exposes pprof information on localhost:6060.",
+		description: "Enable pprof http server.",
 		long:        "pprof",
 		short:       "",
 		valueType:   "",
 	},
 	versionIdx: {
-		description: "Prints the program version.",
+		description: "Print version and exit.",
 		long:        "version",
 		short:       "",
 		valueType:   "",
@@ -455,6 +470,54 @@ var commandLineOptions = []*commandLineOption{
 		short:       "",
 		valueType:   "",
 	},
+	prefetchEnabledIdx: {
+		description: "If specified, active prefetching is enabled.",
+		long:        "prefetch",
+		short:       "",
+		valueType:   "",
+	},
+	prefetchBatchSizeIdx: {
+		description: "The number of items to process in one batch.",
+		long:        "prefetch-batch-size",
+		short:       "",
+		valueType:   "int",
+	},
+	prefetchCheckIntervalIdx: {
+		description: "The interval between queue checks.",
+		long:        "prefetch-check-interval",
+		short:       "",
+		valueType:   "duration",
+	},
+	prefetchRefreshBeforeIdx: {
+		description: "The time before expiration to trigger refresh.",
+		long:        "prefetch-refresh-before",
+		short:       "",
+		valueType:   "duration",
+	},
+	prefetchThresholdIdx: {
+		description: "The number of hits required to trigger prefetch.",
+		long:        "prefetch-threshold",
+		short:       "",
+		valueType:   "int",
+	},
+	prefetchThresholdWindowIdx: {
+		description: "The time window for tracking hits.",
+		long:        "prefetch-threshold-window",
+		short:       "",
+		valueType:   "duration",
+	},
+	prefetchMaxConcurrentRequestsIdx: {
+		description: "The maximum number of concurrent prefetch requests.",
+		long:        "prefetch-max-concurrent-requests",
+		short:       "",
+		valueType:   "int",
+	},
+	prefetchMaxQueueSizeIdx: {
+		description: "The maximum number of items in the prefetch queue.",
+		long:        "prefetch-max-queue-size",
+		short:       "",
+		valueType:   "int",
+	},
 }
 
 // parseCmdLineOptions parses the command-line options.  conf must not be nil.
@@ -465,6 +528,7 @@ func parseCmdLineOptions(conf *configuration) (err error) {
 	for i, fieldPtr := range []any{
 		configPathIdx:               &conf.ConfigPath,
 		logOutputIdx:                &conf.LogOutput,
+		apiPortIdx:                  &conf.APIPort,
 		tlsCertPathIdx:              &conf.TLSCertPath,
 		tlsKeyPathIdx:               &conf.TLSKeyPath,
 		httpsServerNameIdx:          &conf.HTTPSServerName,
@@ -521,6 +585,14 @@ func parseCmdLineOptions(conf *configuration) (err error) {
 		clientCertPathIdx:           &conf.ClientCertPath,
 		clientKeyPathIdx:            &conf.ClientKeyPath,
 		upstreamHTTPHeaders:         &conf.UpstreamHTTPHeaders,
+		prefetchEnabledIdx:               &conf.PrefetchEnabled,
+		prefetchBatchSizeIdx:             &conf.PrefetchBatchSize,
+		prefetchCheckIntervalIdx:         &conf.PrefetchCheckInterval,
+		prefetchRefreshBeforeIdx:         &conf.PrefetchRefreshBefore,
+		prefetchThresholdIdx:             &conf.PrefetchThreshold,
+		prefetchThresholdWindowIdx:       &conf.PrefetchThresholdWindow,
+		prefetchMaxConcurrentRequestsIdx: &conf.PrefetchMaxConcurrentRequests,
+		prefetchMaxQueueSizeIdx:          &conf.PrefetchMaxQueueSize,
 	} {
 		addOption(flags, fieldPtr, commandLineOptions[i])
 	}

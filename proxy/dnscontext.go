@@ -100,6 +100,10 @@ type DNSContext struct {
 	// IsRefresh is true if this request is from a proactive cache refresh
 	// operation, not from a real client request.
 	IsRefresh bool
+
+	// IsInternalPrefetch indicates if this request is initiated by the prefetch manager.
+	// If true, it should not trigger new prefetch threshold checks or hit counting.
+	IsInternalPrefetch bool
 }
 
 // newDNSContext returns a new properly initialized *DNSContext.

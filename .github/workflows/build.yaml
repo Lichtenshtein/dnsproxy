@@ -30,6 +30,7 @@ jobs:
         env:
           CI: "1"
         run: |-
+          go mod tidy
           make test
       - name: Upload coverage
         uses: codecov/codecov-action@v1

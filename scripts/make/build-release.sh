@@ -44,32 +44,35 @@ done
 # Data section.  Arrange data into space-separated tables for read -r to read.
 # Use 0 for missing values.
 
+# platforms="\
+# darwin   amd64     0   0
+# darwin   arm64     0   0
+# freebsd  386       0   0
+# freebsd  amd64     0   0
+# freebsd  arm       5   0
+# freebsd  arm       6   0
+# freebsd  arm       7   0
+# freebsd  arm64     0   0
+# linux    386       0   0
+# linux    amd64     0   0
+# linux    arm       5   0
+# linux    arm       6   0
+# linux    arm       7   0
+# linux    arm64     0   0
+# linux    mips      0   softfloat
+# linux    mips64    0   softfloat
+# linux    mips64le  0   softfloat
+# linux    mipsle    0   softfloat
+# linux    ppc64le   0   0
+# openbsd  amd64     0   0
+# openbsd  arm64     0   0
+# windows  386       0   0
+# windows  amd64     0   0
+# windows  arm64     0   0"
+
 #    os  arch      arm mips
 platforms="\
-darwin   amd64     0   0
-darwin   arm64     0   0
-freebsd  386       0   0
-freebsd  amd64     0   0
-freebsd  arm       5   0
-freebsd  arm       6   0
-freebsd  arm       7   0
-freebsd  arm64     0   0
-linux    386       0   0
-linux    amd64     0   0
-linux    arm       5   0
-linux    arm       6   0
-linux    arm       7   0
-linux    arm64     0   0
-linux    mips      0   softfloat
-linux    mips64    0   softfloat
-linux    mips64le  0   softfloat
-linux    mipsle    0   softfloat
-linux    ppc64le   0   0
-openbsd  amd64     0   0
-openbsd  arm64     0   0
-windows  386       0   0
-windows  amd64     0   0
-windows  arm64     0   0"
+linux    mipsle    0   softfloat"
 readonly platforms
 
 build() {

@@ -72,7 +72,8 @@ done
 
 #    os  arch      arm mips
 platforms="\
-linux    mipsle    0   softfloat"
+linux    mipsle    0   softfloat
+windows  amd64     0   0"
 readonly platforms
 
 build() {
@@ -114,23 +115,21 @@ build() {
 	log "$build_output"
 
 	# Prepare the build directory for archiving.
-	cp ./LICENSE ./README.md "$build_dir"
+	cp ./README.md "$build_dir"
 
 	# Make archives.  Windows prefers ZIP archives; the rest, gzipped tarballs.
-	case "$build_os" in
-	'windows')
-		build_archive="./${dist}/${out}-${build_name}-${version}.zip"
-		# TODO(a.garipov): Find an option similar to the -C option of tar for
-		# zip.
-		(cd "${dist}" && zip -9 -q -r "../${build_archive}" "./${build_name}")
-		;;
-	*)
-		build_archive="./${dist}/${out}-${build_name}-${version}.tar.gz"
-		tar -C "./${dist}" -c -f - "./${build_name}" | gzip -9 - >"$build_archive"
-		;;
-	esac
+	# case "$build_os" in
+	# 'windows')
+		# build_archive="./${dist}/${out}-${build_name}-${version}.zip"
+		# (cd "${dist}" && zip -9 -q -r "../${build_archive}" "./${build_name}")
+		# ;;
+	# *)
+		# build_archive="./${dist}/${out}-${build_name}-${version}.tar.gz"
+		# tar -C "./${dist}" -c -f - "./${build_name}" | gzip -9 - >"$build_archive"
+		# ;;
+	# esac
 
-	log "$build_archive"
+	# log "$build_archive"
 }
 
 log "starting builds"

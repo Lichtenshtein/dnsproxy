@@ -58,7 +58,8 @@ jobs:
 
           make VERBOSE=1 VERSION="${RELEASE_VERSION}" release
 
-          ls -l build/dnsproxy-*
+          ls -l build/*
+#         ls -l build/dnsproxy-*
 #      - name: Create release
 #        if: startsWith(github.ref, 'refs/tags/v')
 #        id: create_release
@@ -70,13 +71,27 @@ jobs:
 #          release_name: Release ${{ github.ref }}
 #          draft: false
 #          prerelease: false
+      - name: Create 7z artifact
+        run: |
+          7z a -t7z -mx=9 -m0=lzma2 -mfb=64 -md=32m -ms=on ./build/dnsproxy-linux-mipsle-dev.7z ./build/linux-mipsle/*
+          7z a -t7z -mx=9 -m0=lzma2 -mfb=64 -md=32m -ms=on ./build/dnsproxy-linux-amd64-dev.7z ./build/windows-amd64/*
+          # 7z a -t7z dnsproxy-linux-armv7-dev.7z ./build/linux-armv7/*
+      - name: Create dirlist snapshot
+        run: |
+          find . -print | sed -e 's;[^/]*/;|___;g;s;___|; |;g' >./post-dir-tree.txt
+          find . -type f -o -type d > ./post-dir-files.txt
       - name: Upload artifacts
 #        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          path: "build/*"
+          name: dnsproxy-${{ github.ref }}
+          path: |
+            ./*-dir-tree.txt
+            ./*-dir-files.txt
+            ./build/dnsproxy-linux-amd64-dev.7z
+            ./build/dnsproxy-linux-mipsle-dev.7z
           retention-days: 30
 #          tags: true
 #          draft: false

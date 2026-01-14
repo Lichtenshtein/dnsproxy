@@ -4,12 +4,13 @@
   'GO_VERSION': '1.25.5'
 
 'on':
-  'push':
-    'tags':
-      - 'v*'
-    'branches':
-      - '*'
-  'pull_request':
+#  'push':
+#    'tags':
+#      - 'v*'
+#    'branches':
+#      - '*'
+#  'pull_request':
+  workflow_dispatch:
 
 'jobs':
   'go-lint':

@@ -4,12 +4,13 @@
   'GO_VERSION': '1.25.5'
 
 'on':
-  'push':
-    'tags':
-      - 'v*'
-    # Builds from the master branch will be pushed with the `dev` tag.
-    'branches':
-      - 'master'
+#  'push':
+#    'tags':
+#      - 'v*'
+#    # Builds from the master branch will be pushed with the `dev` tag.
+#    'branches':
+#      - 'master'
+  workflow_dispatch:
 
 'jobs':
   'docker':
